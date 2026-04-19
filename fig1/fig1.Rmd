@@ -97,17 +97,7 @@ if (length(missing_packages) > 0) {
 # ============================================================================
 
 # Load pre-processed Seurat object
-message("Loading Seurat object...")
-if (!file.exists("scRNA_harmony.RData")) {
-  stop("File 'scRNA_harmony.RData' not found. Please ensure it's in the working directory.")
-}
 load("scRNA_harmony.RData")
-
-# Validate object structure
-message("Validating Seurat object...")
-print(paste("Number of cells:", ncol(scRNA_harmony)))
-print(paste("Number of features:", nrow(scRNA_harmony)))
-print(paste("Available reductions:", names(scRNA_harmony@reductions)))
 
 # Define color palette for 22 clusters
 cluster_colors <- c(
