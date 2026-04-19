@@ -36,7 +36,7 @@ rm(list = ls())
 gc()
 
 # 设置输出目录
-output_dir <- "./output/"
+output_dir <- "."
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 
 # 设置随机种子保证可重复性
