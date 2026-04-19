@@ -121,47 +121,6 @@ pie3D(df$scales,
       main = "Proportion of CD8⁺ T Cell Subsets",
       labelcex = 1.2)
 dev.off()
-Create enhanced 2D version for better readability
-
-df_enhanced <- df %>%
-  mutate(
-    cluster = factor(cluster, levels = cluster),
-    percent_label = paste0(scales, "%"),
-    angle = cumsum(scales) - scales/2
-  )
-p2a <- ggplot(df_enhanced, aes(x = "", y = scales, fill = cluster)) +
-  geom_bar(stat = "identity", width = 1, color = "white") +
-  coord_polar(theta = "y", start = 0) +
-  scale_fill_manual(values = cd8_cluster_colors) +
-  geom_text(aes(label = percent_label),
-            position = position_stack(vjust = 0.5),
-            size = 6,
-            color = "white",
-            fontface = "bold") +
-  theme_void() +
-  theme(
-    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
-    plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40"),
-    legend.position = "right",
-    legend.title = element_text(face = "bold", size = 12),
-    legend.text = element_text(size = 10)
-  ) +
-  labs(
-    title = "Proportional Distribution of CD8⁺ T Cell Subsets",
-    subtitle = "Based on unsupervised clustering of 57,626 PBMCs",
-    fill = "Cluster ID"
-  ) +
-  guides(fill = guide_legend(ncol = 1))
-Save high-resolution version
-
-ggsave(
-  filename = here(output_dir, "Figure2A_pie_chart_enhanced.pdf"),
-  plot = p2a,
-  width = 10,
-  height = 6,
-  device = "pdf",
-  dpi = 300
-)
 
 ---
 
