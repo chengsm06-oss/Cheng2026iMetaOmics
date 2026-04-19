@@ -1,0 +1,787 @@
+---
+title: "Figure 1. Single-cell landscape and annotation of peripheral blood immune cells in Sjögren's syndrome"
+author: "Your Name"
+date: "2026/04/21"
+output: 
+  html_document:
+    toc: false
+    toc_float: false
+    code_folding: hide
+    theme: flatly
+    highlight: tango
+    fig_width: 10
+    fig_height: 7
+    fig_caption: true
+---
+
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+# ============================================================================
+# 1. INITIALIZATION AND SETUP
+# ============================================================================
+knitr::opts_chunk$set(
+  echo = TRUE,           # 显示代码
+  warning = TRUE,        # 显示警告
+  message = TRUE,        # 显示消息
+  error = TRUE,          # 显示错误
+  fig.width = 10,        # 默认图形宽度
+  fig.height = 7,        # 默认图形高度
+  fig.align = "center",  # 图形居中
+  cache = FALSE,         # 不缓存结果（首次运行可设为TRUE加速）
+  dpi = 300              # 图形分辨率
+)
+
+# 清理工作空间
+rm(list = ls())
+gc()
+
+# 设置输出目录
+output_dir <- "./output/"
+if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+
+# 设置随机种子保证可重复性
+set.seed(2024)
+```
+
+```{r libraries, include=FALSE, warning=FALSE, message=FALSE}
+# ============================================================================
+# 2. LOAD REQUIRED LIBRARIES
+# ============================================================================
+# 核心分析包
+library(Seurat)          # 单细胞分析
+library(SingleR)         # 细胞注释
+library(Nebulosa)        # 基因表达密度图
+
+# 可视化包
+library(ggplot2)         # 基础绘图
+library(patchwork)       # 图形组合
+library(RColorBrewer)    # 颜色调色板
+library(viridis)         # 科学配色
+library(cowplot)         # 图形修饰
+
+# 数据处理包
+library(dplyr)           # 数据操作
+library(tidyr)           # 数据整理
+library(reshape2)        # 数据重塑
+library(tibble)          # 现代数据框
+
+# 功能包
+library(here)            # 路径管理
+library(knitr)           # 动态文档
+library(kableExtra)      # 表格美化
+
+# 检查并安装缺失包
+required_packages <- c("Seurat", "SingleR", "ggplot2", "dplyr", "patchwork")
+missing_packages <- required_packages[!required_packages %in% installed.packages()]
+if (length(missing_packages) > 0) {
+  message("Installing missing packages: ", paste(missing_packages, collapse = ", "))
+  BiocManager::install(missing_packages, update = FALSE)
+}
+```
+
+<br>
+
+# **Figure 1: Single-cell atlas of PBMCs in Sjögren's syndrome**
+
+**Figure Legend:** Single-cell RNA sequencing analysis of peripheral blood mononuclear cells (PBMCs) from 5 healthy controls (HC) and 5 Sjögren's syndrome (SjS) patients. (a) t-SNE visualization of 57,626 cells colored by 22 unsupervised clusters. (b) Major cell type annotation using SingleR reference mapping. (c) Joint density plots of key lineage-specific marker genes. (d) Heatmap showing expression patterns of Sjögren's syndrome-associated gene modules across 22 refined cell subtypes.
+
+---
+
+## **a. t-SNE clustering of all PBMCs**
+
+**(a) t-SNE visualization of 57,626 peripheral blood mononuclear cells (PBMCs) from healthy controls (HC) and Sjögren's syndrome (SjS) patients.** Cells are colored by 22 distinct clusters identified through unsupervised Louvain clustering. The analysis reveals comprehensive immune cell heterogeneity in both health and disease states.
+
+```{r fig1a, fig.width=9, fig.height=8, warning=FALSE, message=FALSE}
+# ============================================================================
+# FIGURE 1A: t-SNE CLUSTERING
+# ============================================================================
+
+# Load pre-processed Seurat object
+message("Loading Seurat object...")
+if (!file.exists("scRNA_harmony.RData")) {
+  stop("File 'scRNA_harmony.RData' not found. Please ensure it's in the working directory.")
+}
+load("scRNA_harmony.RData")
+
+# Validate object structure
+message("Validating Seurat object...")
+print(paste("Number of cells:", ncol(scRNA_harmony)))
+print(paste("Number of features:", nrow(scRNA_harmony)))
+print(paste("Available reductions:", names(scRNA_harmony@reductions)))
+
+# Define color palette for 22 clusters
+cluster_colors <- c(
+  "#1F77B4", "#FF7F0E", "#2CA02C", "#D62728", "#9467BD", "#8C564B",
+  "#E377C2", "#7F7F7F", "#BCBD22", "#17BECF", "#AEC7E8", "#FFBB78",
+  "#98DF8A", "#FF9896", "#C5B0D5", "#C49C94", "#F7B6D2", "#C7C7C7",
+  "#DBDB8D", "#9EDAE5", "#393B79", "#5254A3"
+)
+
+# Create t-SNE plot
+p1a <- DimPlot(
+  scRNA_harmony,
+  reduction = "tsne",
+  group.by = "seurat_clusters",
+  label = TRUE,
+  label.size = 4,
+  pt.size = 0.3,
+  cols = cluster_colors,
+  repel = TRUE
+) +
+  labs(
+    title = "Unsupervised clustering of 57,626 PBMCs",
+    subtitle = "22 distinct clusters identified by Louvain algorithm",
+    x = "t-SNE 1",
+    y = "t-SNE 2"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10),
+    legend.position = "right",
+    legend.title = element_text(face = "bold"),
+    panel.background = element_rect(fill = "white", color = NA),
+    panel.grid = element_line(color = "gray90", linewidth = 0.2),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
+  ) +
+  guides(color = guide_legend(
+    title = "Cluster ID",
+    ncol = 2,
+    override.aes = list(size = 3)
+  ))
+
+# Save high-resolution version
+ggsave(
+  filename = here(output_dir, "Figure1A_tSNE_clusters.pdf"),
+  plot = p1a,
+  width = 9,
+  height = 8,
+  device = "pdf",
+  dpi = 300
+)
+
+# Save PNG for quick viewing
+ggsave(
+  filename = here(output_dir, "Figure1A_tSNE_clusters.png"),
+  plot = p1a,
+  width = 9,
+  height = 8,
+  dpi = 300,
+  bg = "white"
+)
+
+# Display plot
+p1a
+
+# Print cluster statistics
+cluster_stats <- scRNA_harmony@meta.data %>%
+  group_by(seurat_clusters) %>%
+  summarise(
+    n_cells = n(),
+    percent = round(n() / ncol(scRNA_harmony) * 100, 2)
+  ) %>%
+  arrange(seurat_clusters)
+
+message("\nCluster composition:")
+print(cluster_stats)
+```
+
+**Table: Cluster size distribution**
+```{r cluster_table, echo=FALSE}
+kable(cluster_stats, caption = "Number of cells per cluster") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+```
+
+---
+
+## **b. Major cell type annotation**
+
+**(b) Cell type annotation at the major lineage level.** Annotation was performed using SingleR with the Human Primary Cell Atlas as reference. Colors represent 10 major immune cell lineages identified in PBMCs.
+
+```{r fig1b, fig.width=9, fig.height=8, warning=FALSE, message=FALSE}
+# ============================================================================
+# FIGURE 1B: MAJOR CELL TYPE ANNOTATION
+# ============================================================================
+
+# Load reference data
+message("Loading reference data for SingleR annotation...")
+if (!file.exists("HumanPrimaryCellAtlasData.Rdata")) {
+  stop("Reference data file 'HumanPrimaryCellAtlasData.Rdata' not found.")
+}
+load("HumanPrimaryCellAtlasData.Rdata")
+ref_data <- ref  # Rename for clarity
+
+# Prepare data for SingleR
+message("Preparing data for SingleR annotation...")
+sce_data <- GetAssayData(scRNA_harmony, layer = "data")
+cluster_ids <- scRNA_harmony@meta.data$seurat_clusters
+
+# Run SingleR annotation
+message("Running SingleR annotation...")
+singler_results <- SingleR(
+  test = sce_data,
+  ref = ref_data,
+  labels = ref_data$label.main,
+  method = "cluster",
+  clusters = cluster_ids,
+  assay.type.test = "logcounts",
+  assay.type.ref = "logcounts"
+)
+
+# Save annotation results
+annotation_df <- data.frame(
+  Cluster = rownames(singler_results),
+  Predicted_Label = singler_results$labels,
+  Score = singler_results$scores,
+  stringsAsFactors = FALSE
+)
+
+write.csv(
+  annotation_df,
+  file = here(output_dir, "SingleR_annotation_results.csv"),
+  row.names = FALSE
+)
+
+message("SingleR annotation completed. Results saved to CSV.")
+
+# Define manual annotation based on SingleR results
+# This mapping combines SingleR predictions with domain knowledge
+major_type_mapping <- c(
+  "0" = "CD4+ T cell",      # Helper T cells
+  "1" = "CD4+ T cell",      # Regulatory T cells
+  "2" = "CD8+ T cell",      # Cytotoxic T cells
+  "3" = "CD8+ T cell",      # Memory CD8+ T cells
+  "4" = "NK Cell",          # Natural Killer cells
+  "5" = "NK Cell",          # Activated NK cells
+  "6" = "Monocytes",        # Classical monocytes
+  "7" = "Monocytes",        # Non-classical monocytes
+  "8" = "B Cell",           # B lymphocytes
+  "9" = "γδ T cell",        # Gamma delta T cells
+  "10" = "γδ T cell",       # TRGC2+ γδ T cells
+  "11" = "CD8+ T cell",     # Effector memory CD8+ T cells
+  "12" = "CD4+ T cell",     # Naive CD4+ T cells
+  "13" = "Macrophages",     # Macrophages
+  "14" = "B Cell",          # Regulatory B cells
+  "15" = "γδ T cell",       # TRDC+ γδ T cells
+  "16" = "Platelets",       # Platelets
+  "17" = "CD4+ T cell",     # Helios+ Tregs
+  "18" = "DC cell",         # Dendritic cells
+  "19" = "CD8+ T cell",     # Exhausted CD8+ T cells
+  "20" = "Monocytes",       # Inflammatory monocytes
+  "21" = "CMP"              # Common myeloid progenitors
+)
+
+# Add annotations to Seurat object
+scRNA_harmony@meta.data$Major.CellType <- factor(
+  major_type_mapping[as.character(scRNA_harmony@meta.data$seurat_clusters)],
+  levels = c(
+    "CD4+ T cell", "CD8+ T cell", "γδ T cell", "NK Cell",
+    "B Cell", "Monocytes", "Macrophages", "DC cell",
+    "Platelets", "CMP"
+  )
+)
+
+# Define color scheme for major cell types
+major_type_colors <- c(
+  "CD4+ T cell" = "#E41A1C",    # Red
+  "CD8+ T cell" = "#377EB8",    # Blue
+  "γδ T cell" = "#4DAF4A",      # Green
+  "NK Cell" = "#984EA3",        # Purple
+  "B Cell" = "#FF7F00",         # Orange
+  "Monocytes" = "#FFFF33",      # Yellow
+  "Macrophages" = "#A65628",    # Brown
+  "DC cell" = "#F781BF",        # Pink
+  "Platelets" = "#999999",      # Gray
+  "CMP" = "#66C2A5"             # Teal
+)
+
+# Create annotation plot
+p1b <- DimPlot(
+  scRNA_harmony,
+  reduction = "tsne",
+  group.by = "Major.CellType",
+  label = FALSE,
+  pt.size = 0.3,
+  cols = major_type_colors,
+  order = TRUE
+) +
+  labs(
+    title = "Major cell type annotation",
+    subtitle = "10 major immune lineages identified by SingleR",
+    x = "t-SNE 1",
+    y = "t-SNE 2"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10),
+    legend.position = "right",
+    legend.title = element_text(face = "bold"),
+    legend.text = element_text(size = 10),
+    panel.background = element_rect(fill = "white", color = NA),
+    panel.grid = element_line(color = "gray90", linewidth = 0.2),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
+  ) +
+  guides(color = guide_legend(
+    title = "Major Cell Type",
+    ncol = 1,
+    override.aes = list(size = 4, alpha = 1)
+  ))
+
+# Save plots
+ggsave(
+  filename = here(output_dir, "Figure1B_major_types.pdf"),
+  plot = p1b,
+  width = 9,
+  height = 8,
+  device = "pdf"
+)
+
+# Display plot
+p1b
+
+# Print annotation summary
+annotation_summary <- scRNA_harmony@meta.data %>%
+  group_by(Major.CellType) %>%
+  summarise(
+    n_cells = n(),
+    percent = round(n() / ncol(scRNA_harmony) * 100, 2),
+    n_clusters = n_distinct(seurat_clusters)
+  ) %>%
+  arrange(desc(n_cells))
+
+message("\nMajor cell type composition:")
+print(annotation_summary)
+```
+
+**Table: Major cell type distribution**
+```{r major_type_table, echo=FALSE}
+kable(annotation_summary, caption = "Distribution of major cell types") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+```
+
+---
+
+## **c. Marker gene expression validation**
+
+**(c) Joint density plots of key lineage-specific marker genes.** Each panel shows co-expression patterns of canonical markers validating cell type identities. Density visualization highlights both expression level and spatial distribution in t-SNE space.
+
+```{r fig1c, fig.width=14, fig.height=12, warning=FALSE, message=FALSE}
+# ============================================================================
+# FIGURE 1C: MARKER GENE EXPRESSION DENSITY
+# ============================================================================
+
+# Define marker gene sets for each major lineage
+marker_sets <- list(
+  "Monocyte/Macrophage" = list(
+    genes = c("FCN1", "S100A12", "CD68", "CD163", "MS4A7"),
+    title = "Monocyte/Macrophage\n(FCN1, S100A12, CD68, CD163, MS4A7)"
+  ),
+  "Dendritic Cells" = list(
+    genes = c("CD1C", "FCER1A", "CLEC10A"),
+    title = "Dendritic Cells\n(CD1C, FCER1A, CLEC10A)"
+  ),
+  "NK Cells" = list(
+    genes = c("NKG7", "CD247", "KLRC1", "KLRF1"),
+    title = "Natural Killer Cells\n(NKG7, CD247, KLRC1, KLRF1)"
+  ),
+  "Platelets" = list(
+    genes = c("ITGA2B", "PF4", "GP1BA", "TUBB1"),
+    title = "Platelets\n(ITGA2B, PF4, GP1BA, TUBB1)"
+  ),
+  "B Cells" = list(
+    genes = c("MS4A1", "CD79A", "CD79B"),
+    title = "B Lymphocytes\n(MS4A1, CD79A, CD79B)"
+  ),
+  "T Cells" = list(
+    genes = c("CD3D", "CD3E"),
+    title = "T Lymphocytes\n(CD3D, CD3E)"
+  ),
+  "CD4+ T Cells" = list(
+    genes = c("CD3E", "CD4"),
+    title = "CD4+ T Cells\n(CD3E, CD4)"
+  ),
+  "CD8+ T Cells" = list(
+    genes = c("CD8A", "CD8B"),
+    title = "CD8+ T Cells\n(CD8A, CD8B)"
+  ),
+  "γδ T Cells" = list(
+    genes = c("TRDC", "TRGC1", "TRGC2"),
+    title = "γδ T Cells\n(TRDC, TRGC1, TRGC2)"
+  )
+)
+
+# Create individual density plots
+create_density_plot <- function(seurat_obj, gene_set, plot_title) {
+  p <- plot_density(
+    seurat_obj,
+    gene_set,
+    joint = TRUE,
+    reduction = "tsne",
+    size = 0.5
+  )[[length(gene_set)]] +  # Get the joint density plot
+    
+    labs(title = plot_title) +
+    
+    # Customize appearance
+    theme_minimal() +
+    theme(
+      plot.title = element_text(
+        size = 12,
+        face = "bold",
+        hjust = 0.5,
+        margin = margin(b = 5)
+      ),
+      axis.title = element_blank(),
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      legend.position = "none",
+      panel.background = element_rect(fill = "white", color = NA),
+      panel.border = element_rect(
+        fill = NA,
+        color = "black",
+        linewidth = 0.8
+      ),
+      plot.margin = margin(5, 5, 5, 5)
+    ) +
+    
+    # Use viridis color scale
+    scale_color_viridis_c(option = "plasma", direction = -1) +
+    
+    # Remove axis labels
+    xlab(NULL) +
+    ylab(NULL)
+  
+  return(p)
+}
+
+# Generate all density plots
+density_plots <- list()
+for (i in seq_along(marker_sets)) {
+  cell_type <- names(marker_sets)[i]
+  genes <- marker_sets[[i]]$genes
+  title <- marker_sets[[i]]$title
+  
+  message(sprintf("Creating density plot for %s...", cell_type))
+  
+  density_plots[[cell_type]] <- create_density_plot(
+    scRNA_harmony,
+    genes,
+    title
+  )
+}
+
+# Arrange plots in a 3x3 grid
+p1c <- wrap_plots(density_plots, ncol = 3) +
+  plot_annotation(
+    title = "Lineage-specific marker gene expression",
+    subtitle = "Joint density plots validate cell type identities",
+    theme = theme(
+      plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40")
+    )
+  )
+
+# Save combined plot
+ggsave(
+  filename = here(output_dir, "Figure1C_marker_density.pdf"),
+  plot = p1c,
+  width = 14,
+  height = 12,
+  device = "pdf"
+)
+
+# Display the plot
+p1c
+
+# Save individual plots for potential supplemental figures
+for (cell_type in names(marker_sets)) {
+  ggsave(
+    filename = here(output_dir, sprintf("marker_%s.pdf", gsub("/", "_", cell_type))),
+    plot = density_plots[[cell_type]],
+    width = 4,
+    height = 4
+  )
+}
+
+message("All marker density plots created and saved.")
+```
+
+---
+
+## **d. Sjögren's syndrome gene module analysis**
+
+**(d) Heatmap showing z-score normalized expression of 15 Sjögren's syndrome-associated gene modules across 22 refined cell subtypes.** Columns are ordered by major lineage, rows by gene module membership. Dashed lines separate different cell lineages and gene modules.
+
+```{r fig1d, fig.width=12, fig.height=10, warning=FALSE, message=FALSE}
+# ============================================================================
+# FIGURE 1D: PSS GENE MODULE HEATMAP
+# ============================================================================
+
+# Define refined cell subtypes
+subtype_mapping <- c(
+  "0" = "Naive CD4+ T cell",
+  "1" = "CD25hi Foxp3hi CD4+ Treg",
+  "2" = "ZNF683+ CD8+ TF",
+  "3" = "Naive CD8+ T cell",
+  "4" = "KLRF1hi NK cell",
+  "5" = "KLRC1lo NK cell",
+  "6" = "CD14+ Monocytes",
+  "7" = "S100A12+ Monocytes",
+  "8" = "GC B cell",
+  "9" = "TRGC2hi γδ T cell",
+  "10" = "TRGC2me γδ T cell",
+  "11" = "GZMKhi CD8+ TEM",
+  "12" = "Foxp3hi CD4+ Treg",
+  "13" = "Macrophage",
+  "14" = "CD19+ CD24hi CD27+ Bregs",
+  "15" = "TRDC γδ T cell",
+  "16" = "Platelets",
+  "17" = "Helios Foxp3lo CD4+ Treg",
+  "18" = "DC cell",
+  "19" = "CTLA-4 CD8+ Inhibitory",
+  "20" = "GZMB+ Monocytes",
+  "21" = "CMP"
+)
+
+# Add refined subtypes to metadata
+scRNA_harmony@meta.data$Minor.CellType <- factor(
+  subtype_mapping[as.character(scRNA_harmony@meta.data$seurat_clusters)]
+)
+
+# Define sample groups (HC vs SjS)
+sample_group_mapping <- c(
+  "sample1" = "HC", "sample2" = "HC", "sample3" = "HC",
+  "sample4" = "HC", "sample5" = "HC", "sample6" = "SjS",
+  "sample7" = "SjS", "sample8" = "SjS", "sample9" = "SjS",
+  "sample10" = "SjS"
+)
+
+scRNA_harmony@meta.data$Group <- factor(
+  sample_group_mapping[as.character(scRNA_harmony@meta.data$orig.ident)],
+  levels = c("HC", "SjS")
+)
+
+# Load PSS gene modules
+message("Loading PSS gene modules...")
+if (!file.exists("PSS_gene.txt")) {
+  stop("Gene module file 'PSS_gene.txt' not found.")
+}
+
+pss_genes <- read.table(
+  "PSS_gene.txt",
+  header = TRUE,
+  sep = "\t",
+  stringsAsFactors = FALSE,
+  quote = "",
+  comment.char = ""
+)
+
+# Remove duplicates
+pss_genes <- pss_genes[!duplicated(pss_genes$gene), ]
+
+# Ensure proper factor levels
+pss_genes$gene <- factor(pss_genes$gene, levels = unique(pss_genes$gene))
+pss_genes$group <- factor(
+  pss_genes$group,
+  levels = paste0("g", 1:15)
+)
+
+# Calculate average expression per subtype
+Idents(scRNA_harmony) <- "Minor.CellType"
+
+avg_expression <- AverageExpression(
+  scRNA_harmony,
+  assays = "RNA",
+  features = levels(pss_genes$gene),
+  group.by = "Minor.CellType",
+  slot = "data"
+)$RNA
+
+# Order cell types by major lineage
+celltype_info <- unique(scRNA_harmony@meta.data[, c("Major.CellType", "Minor.CellType")])
+celltype_info$Major.CellType <- factor(
+  celltype_info$Major.CellType,
+  levels = c(
+    "Macrophages", "Monocytes", "DC cell", "NK Cell",
+    "Platelets", "B Cell", "CD4+ T cell", "CD8+ T cell",
+    "γδ T cell", "CMP"
+  )
+)
+
+celltype_info <- celltype_info[order(celltype_info$Major.CellType), ]
+celltype_info$Minor.CellType <- factor(
+  celltype_info$Minor.CellType,
+  levels = unique(celltype_info$Minor.CellType)
+)
+
+# Reorder expression matrix
+avg_expression <- avg_expression[, levels(celltype_info$Minor.CellType)]
+
+# Z-score normalization (by gene)
+zscore_matrix <- t(scale(t(avg_expression)))
+
+# Clip extreme values
+zscore_matrix[zscore_matrix > 3] <- 3
+zscore_matrix[zscore_matrix < -2.5] <- -2.5
+
+# Prepare data for plotting
+plot_data <- zscore_matrix %>%
+  as.data.frame() %>%
+  rownames_to_column("Gene") %>%
+  mutate(Gene = factor(Gene, levels = rev(levels(pss_genes$gene)))) %>%
+  pivot_longer(
+    cols = -Gene,
+    names_to = "CellType",
+    values_to = "Zscore"
+  ) %>%
+  mutate(
+    CellType = factor(CellType, levels = levels(celltype_info$Minor.CellType))
+  )
+
+# Create color palette
+heatmap_palette <- colorRampPalette(rev(brewer.pal(11, "RdBu")))(100)
+
+# Create main heatmap
+heatmap_plot <- ggplot(plot_data, aes(x = as.numeric(CellType), y = Gene, fill = Zscore)) +
+  geom_tile(color = NA, linewidth = 0) +
+  
+  # Color scale
+  scale_fill_gradientn(
+    colors = heatmap_palette,
+    limits = c(-2.5, 3),
+    na.value = "white",
+    name = "Z-score"
+  ) +
+  
+  # X-axis labels
+  scale_x_continuous(
+    expand = c(0, 0),
+    breaks = seq(1, ncol(avg_expression), by = 2),
+    labels = levels(celltype_info$Minor.CellType)[seq(1, ncol(avg_expression), by = 2)],
+    sec.axis = dup_axis(
+      breaks = seq(2, ncol(avg_expression), by = 2),
+      labels = levels(celltype_info$Minor.CellType)[seq(2, ncol(avg_expression), by = 2)]
+    )
+  ) +
+  
+  scale_y_discrete(expand = c(0, 0)) +
+  
+  # Add separation lines
+  geom_vline(
+    xintercept = cumsum(table(celltype_info$Major.CellType)) + 0.5,
+    linetype = "dashed",
+    color = "gray40",
+    linewidth = 0.5
+  ) +
+  
+  geom_hline(
+    yintercept = cumsum(rev(table(pss_genes$group)[-1])) + 0.5,
+    linetype = "dashed",
+    color = "gray40",
+    linewidth = 0.5
+  ) +
+  
+  # Theme customization
+  theme_minimal() +
+  theme(
+    axis.title = element_blank(),
+    axis.text.y = element_blank(),
+    axis.text.x.top = element_text(
+      angle = 90,
+      hjust = 0,
+      vjust = 0.5,
+      size = 9
+    ),
+    axis.text.x.bottom = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5,
+      size = 9
+    ),
+    axis.ticks = element_blank(),
+    legend.position = "right",
+    legend.title = element_text(face = "bold", size = 10),
+    legend.text = element_text(size = 9),
+    panel.grid = element_blank(),
+    plot.margin = margin(10, 10, 10, 10)
+  )
+
+# Create gene annotation bar
+gene_annotation <- pss_genes %>%
+  mutate(
+    x = 1,
+    y = seq_len(n()),
+    group = factor(group, levels = paste0("g", 1:15))
+  )
+
+# Define colors for gene modules
+module_colors <- colorRampPalette(brewer.pal(12, "Set3"))(15)
+
+annotation_plot <- ggplot(gene_annotation, aes(x = x, y = y, fill = group)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(
+    aes(label = gene),
+    size = 2.8,
+    family = "serif",
+    fontface = "italic",
+    hjust = 0,
+    nudge_x = 0.5
+  ) +
+  scale_fill_manual(values = module_colors) +
+  scale_x_continuous(expand = c(0, 2)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  theme_void() +
+  theme(
+    legend.position = "none",
+    plot.margin = margin(0, 0, 0, 0)
+  )
+
+# Combine plots
+combined_plot <- annotation_plot + heatmap_plot +
+  plot_layout(widths = c(1, 3)) +
+  plot_annotation(
+    title = "Sjögren's syndrome-associated gene module expression",
+    subtitle = "Z-score normalized expression across 22 immune cell subtypes",
+    theme = theme(
+      plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40")
+    )
+  )
+
+# Save combined plot
+ggsave(
+  filename = here(output_dir, "Figure1D_PSS_heatmap.pdf"),
+  plot = combined_plot,
+  width = 12,
+  height = 10,
+  device = "pdf"
+)
+
+# Display plot
+combined_plot
+
+# Save expression data
+write.csv(
+  zscore_matrix,
+  file = here(output_dir, "PSS_gene_expression_matrix.csv"),
+  row.names = TRUE
+)
+
+message("PSS gene module heatmap created and data saved.")
+```
+
+---
+
+## **Session Information**
+
+```{r session_info, echo=FALSE}
+# ============================================================================
+# SESSION INFORMATION
+# ============================================================================
+sessioninfo::session_info()
+```
