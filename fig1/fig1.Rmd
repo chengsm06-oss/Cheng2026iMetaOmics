@@ -764,15 +764,6 @@ ggsave(
 
 # Display plot
 combined_plot
-
-# Save expression data
-write.csv(
-  zscore_matrix,
-  file = here(output_dir, "PSS_gene_expression_matrix.csv"),
-  row.names = TRUE
-)
-
-message("PSS gene module heatmap created and data saved.")
 ```
 
 ---
