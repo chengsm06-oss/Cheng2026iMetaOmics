@@ -20,15 +20,15 @@ output:
 # 1. INITIALIZATION AND SETUP
 # ============================================================================
 knitr::opts_chunk$set(
-  echo = TRUE,           # 显示代码
-  warning = TRUE,        # 显示警告
-  message = TRUE,        # 显示消息
-  error = TRUE,          # 显示错误
-  fig.width = 10,        # 默认图形宽度
-  fig.height = 7,        # 默认图形高度
-  fig.align = "center",  # 图形居中
-  cache = FALSE,         # 不缓存结果（首次运行可设为TRUE加速）
-  dpi = 300              # 图形分辨率
+  echo = TRUE,           
+  warning = TRUE,        
+  message = TRUE,       
+  error = TRUE,          
+  fig.width = 10,        
+  fig.height = 7,        
+  fig.align = "center",  
+  cache = FALSE,         
+  dpi = 300              
 )
 
 # 清理工作空间
@@ -48,27 +48,27 @@ set.seed(123)
 # 2. LOAD REQUIRED LIBRARIES
 # ============================================================================
 # 核心分析包
-library(Seurat)          # 单细胞分析
-library(SingleR)         # 细胞注释
-library(Nebulosa)        # 基因表达密度图
+library(Seurat)         
+library(SingleR)        
+library(Nebulosa)       
 
 # 可视化包
-library(ggplot2)         # 基础绘图
-library(patchwork)       # 图形组合
-library(RColorBrewer)    # 颜色调色板
-library(viridis)         # 科学配色
-library(cowplot)         # 图形修饰
+library(ggplot2)         
+library(patchwork)      
+library(RColorBrewer)    
+library(viridis)         
+library(cowplot)         
 
 # 数据处理包
-library(dplyr)           # 数据操作
-library(tidyr)           # 数据整理
-library(reshape2)        # 数据重塑
-library(tibble)          # 现代数据框
+library(dplyr)           
+library(tidyr)          
+library(reshape2)       
+library(tibble)        
 
 # 功能包
-library(here)            # 路径管理
-library(knitr)           # 动态文档
-library(kableExtra)      # 表格美化
+library(here)           
+library(knitr)          
+library(kableExtra)     
 
 # 检查并安装缺失包
 required_packages <- c("Seurat", "SingleR", "ggplot2", "dplyr", "patchwork")
