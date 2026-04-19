@@ -1,1 +1,168 @@
-1111
+---
+title: "Figure 2. Characterization of CD8⁺ T Cell Subsets in Sjögren's Syndrome"
+author: "Cheng"
+date: "2026/04/21"
+output: 
+  html_document:
+    toc: false
+    toc_float: false
+    code_folding: hide
+    theme: flatly
+    highlight: tango
+    fig_width: 10
+    fig_height: 7
+    fig_caption: true
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+# ============================================================================
+# 1. INITIALIZATION AND SETUP
+# ============================================================================
+knitr::opts_chunk$set(
+  echo = TRUE,           # 显示代码
+  warning = TRUE,        # 显示警告
+  message = TRUE,        # 显示消息
+  error = TRUE,          # 显示错误
+  fig.width = 10,        # 默认图形宽度
+  fig.height = 7,        # 默认图形高度
+  fig.align = "center",  # 图形居中
+  cache = FALSE,         # 不缓存结果（首次运行可设为TRUE加速）
+  dpi = 300              # 图形分辨率
+)
+
+# 清理工作空间
+rm(list = ls())
+gc()
+
+# 设置输出目录
+output_dir <- "."
+if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+
+# 设置随机种子保证可重复性
+set.seed(123)
+```
+
+```{r libraries, include=FALSE, warning=FALSE, message=FALSE}
+# ============================================================================
+# 2. LOAD REQUIRED LIBRARIES
+# ============================================================================
+# 核心分析包
+
+library(Seurat) # 单细胞分析
+library(plotrix) # 3D饼图
+
+# 可视化包
+library(ggplot2) # 基础绘图
+library(patchwork) # 图形组合
+library(RColorBrewer) # 颜色调色板
+library(viridis) # 科学配色
+library(ggrepel) # 标签防重叠
+library(ggstatsplot) # 统计可视化
+
+# 功能分析包
+library(clusterProfiler) # GO富集分析
+library(org.Hs.eg.db) # 人类基因注释
+library(enrichplot) # 富集分析可视化
+
+# 数据处理包
+library(dplyr) # 数据操作
+library(tidyr) # 数据整理
+library(tibble) # 现代数据框
+
+# 检查并安装缺失包
+required_packages <- c("Seurat", "ggplot2", "plotrix", "dplyr", "clusterProfiler")
+missing_packages <- required_packages[!required_packages %in% installed.packages()]
+if (length(missing_packages) > 0) {
+message("Installing missing packages: ", paste(missing_packages, collapse = ", "))
+BiocManager::install(missing_packages, update = FALSE)
+}
+```
+
+<br>
+
+# **Figure 2: Characterization of CD8⁺ T Cell Subsets in Sjögren's Syndrome**
+
+**Figure Legend:** Analysis of CD8⁺ T cell heterogeneity in Sjögren's syndrome. (a) Proportional distribution of four CD8⁺ T cell subsets. (b) Violin plots showing expression of 18 marker genes across subsets. (c) Dot plot visualizing expression patterns of 45 selected genes in cluster3. (d) Volcano plot of differentially expressed genes in cluster3 between SjS and HC. (e) Volcano plot of differentially expressed genes in cluster19 between SjS and HC. (f) GO enrichment analysis of differentially expressed genes from CD8⁺ T cell clusters.
+
+---
+
+## **a. Proportion of CD8⁺ T cell subset**
+
+**(a) 3D pie chart showing the relative abundance of four CD8⁺ T cell clusters (cluster2, cluster3, cluster11, cluster19) identified in PBMCs.** Cluster3 (39%) represents the most abundant subset, followed by cluster2 (43%), cluster11 (15%), and cluster19 (3%). Colors correspond to clusters and are consistent throughout the figure.
+
+```{r fig2a, fig.width=10, fig.height=6, warning=FALSE, message=FALSE}
+# ============================================================================
+# FIGURE 2A: PROPORTION OF CD8⁺ T CELL SUBSETS
+# ============================================================================
+
+# Load pre-processed Seurat object
+load("scRNA_harmony.RData")
+
+cluster <- c("cluster2", "cluster3", "cluster11", "cluster19")
+scales <- c(43, 39, 15, 3)
+label <- paste(cluster, "(", scales, "%", ")", sep = "")
+df <- data.frame(cluster = cluster, scales = scales, label = label)
+Define color palette for CD8⁺ T cell clusters
+
+cd8_cluster_colors <- c(
+"#354D98", # cluster2 - deep blue
+"#70A2C5", # cluster3 - light blue
+"#F5B46B", # cluster11 - orange
+"#DF5B3A" # cluster19 - red
+)
+Create 3D pie chart
+
+pdf(file = here(output_dir, "Figure2A_pie_chart.pdf"), width = 10, height = 6)
+pie3D(df$scales,
+      radius = 1.5,
+      labels = df$label,
+      explode = 0.2,
+      col = cd8_cluster_colors,
+      main = "Proportion of CD8⁺ T Cell Subsets",
+      labelcex = 1.2)
+dev.off()
+Create enhanced 2D version for better readability
+
+df_enhanced <- df %>%
+  mutate(
+    cluster = factor(cluster, levels = cluster),
+    percent_label = paste0(scales, "%"),
+    angle = cumsum(scales) - scales/2
+  )
+p2a <- ggplot(df_enhanced, aes(x = "", y = scales, fill = cluster)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar(theta = "y", start = 0) +
+  scale_fill_manual(values = cd8_cluster_colors) +
+  geom_text(aes(label = percent_label),
+            position = position_stack(vjust = 0.5),
+            size = 6,
+            color = "white",
+            fontface = "bold") +
+  theme_void() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40"),
+    legend.position = "right",
+    legend.title = element_text(face = "bold", size = 12),
+    legend.text = element_text(size = 10)
+  ) +
+  labs(
+    title = "Proportional Distribution of CD8⁺ T Cell Subsets",
+    subtitle = "Based on unsupervised clustering of 57,626 PBMCs",
+    fill = "Cluster ID"
+  ) +
+  guides(fill = guide_legend(ncol = 1))
+Save high-resolution version
+
+ggsave(
+  filename = here(output_dir, "Figure2A_pie_chart_enhanced.pdf"),
+  plot = p2a,
+  width = 10,
+  height = 6,
+  device = "pdf",
+  dpi = 300
+)
+
+---
+
+
