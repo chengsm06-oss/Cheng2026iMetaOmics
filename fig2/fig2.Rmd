@@ -392,7 +392,7 @@ cluster19.markers$names,
 )
 
 #Create volcano plot
-p2d <- ggplot(cluster19.markers, aes(x = Difference, y = avg_log2FC)) +
+p2e <- ggplot(cluster19.markers, aes(x = Difference, y = avg_log2FC)) +
 geom_point(size = 1.5, aes(color = group, alpha = group)) +
 scale_color_manual(
 name = "Expression",
@@ -437,8 +437,8 @@ guides(color = guide_legend(override.aes = list(size = 3)))
 
 #Save high-resolution version
 ggsave(
-filename = here(output_dir, "Figure2D_volcano_plot.pdf"),
-plot = p2d,
+filename = here(output_dir, "Figure2E_volcano_plot.pdf"),
+plot = p2e,
 width = 8,
 height = 7,
 device = "pdf",
