@@ -121,6 +121,8 @@ pie3D(df$scales,
       main = "Proportion of CD8⁺ T Cell Subsets",
       labelcex = 1.2)
 dev.off()
+```
+
 ---
 
 ## **b. Feature expression in CD8⁺ T cell clusters**
@@ -240,6 +242,8 @@ ggsave(
   device = "pdf",
   dpi = 300
 )
+```
+
 ---
   
 ## **d. Differential gene expression in cluster3**
@@ -264,12 +268,12 @@ group.by = "Group",
 logfc.threshold = 0,
 min.pct = 0.1
 )
-Prepare data for volcano plot
 
+#Prepare data for volcano plot
 cluster3.markers$names <- rownames(cluster3.markers)
 cluster3.markersDifference<−cluster3.markerspct.1 - cluster3.markers$pct.2
-Classify genes
 
+#Classify genes
 cluster3.markers$group <- "no"
 cluster3.markersgroup[cluster3.markersavg_log2FC >= 0.25 &
 cluster3.markers$Difference >= 0.1 &
@@ -277,16 +281,16 @@ cluster3.markers$pct.2 <= 0.5] <- "up"
 cluster3.markersgroup[cluster3.markersavg_log2FC <= (-0.25) &
 cluster3.markers$Difference <= -0.1 &
 cluster3.markers$pct.1 <= 0.5] <- "down"
-Label key genes
 
+#Label key genes
 label_genes <- c("GIMAP5", "GIMAP4", "SNHG25")
 cluster3.markers$label <- ifelse(
 cluster3.markers$names %in% label_genes,
 cluster3.markers$names,
 ""
 )
-Create volcano plot
 
+#Create volcano plot
 p2d <- ggplot(cluster3.markers, aes(x = Difference, y = avg_log2FC)) +
 geom_point(size = 1.5, aes(color = group, alpha = group)) +
 scale_color_manual(
@@ -329,8 +333,8 @@ x = "∆ Percentage Difference (pct.1 - pct.2)",
 y = "Log₂ Fold Change"
 ) +
 guides(color = guide_legend(override.aes = list(size = 3)))
-Save high-resolution version
 
+#Save high-resolution version
 ggsave(
 filename = here(output_dir, "Figure2D_volcano_plot.pdf"),
 plot = p2d,
@@ -339,3 +343,226 @@ height = 7,
 device = "pdf",
 dpi = 300
 )
+```
+
+---
+
+## **d. Differential gene expression in cluster19**
+  
+**(d) Volcano plot comparing gene expression between Sjögren's syndrome patients and healthy controls in CD8⁺ T cell cluster19.** Genes with adjusted p-value < 0.05 and |log2 fold change| > 0.15 are considered significant. Key genes GIMAP5, GIMAP4, and SNHG25 are highlighted, suggesting their potential role in SjS pathogenesis.
+{r fig2d, fig.width=8, fig.height=7, warning=FALSE, message=FALSE}
+============================================================================
+FIGURE 2D: DIFFERENTIAL GENE EXPRESSION IN CLUSTER3
+============================================================================
+
+#Subset cluster19
+Idents(CD8_T_cell) <- 'seurat_clusters'
+sub_cluster19 <- subset(CD8_T_cell, idents = "19")
+Find differentially expressed genes
+
+message("Identifying differentially expressed genes in cluster19...")
+cluster19.markers <- FindMarkers(
+sub_cluster19,
+ident.1 = "SjS",
+ident.2 = "HC",
+group.by = "Group",
+logfc.threshold = 0,
+min.pct = 0.1
+)
+
+#Prepare data for volcano plot
+cluster19.markers$names <- rownames(cluster19.markers)
+cluster19.markersDifference<−cluster19.markerspct.1 - cluster19.markers$pct.2
+
+#Classify genes
+cluster19.markers$group <- "no"
+cluster19.markersgroup[cluster19.markersavg_log2FC >= 0.25 &
+cluster19.markers$Difference >= 0.1 &
+cluster19.markers$pct.2 <= 0.5] <- "up"
+cluster19.markersgroup[cluster19.markersavg_log2FC <= (-0.25) &
+cluster19.markers$Difference <= -0.1 &
+cluster19.markers$pct.1 <= 0.5] <- "down"
+
+#Label key genes
+label_genes <- c("GIMAP5", "GIMAP4", "SNHG25")
+cluster19.markers$label <- ifelse(
+cluster19.markers$names %in% label_genes,
+cluster19.markers$names,
+""
+)
+
+#Create volcano plot
+p2d <- ggplot(cluster19.markers, aes(x = Difference, y = avg_log2FC)) +
+geom_point(size = 1.5, aes(color = group, alpha = group)) +
+scale_color_manual(
+name = "Expression",
+values = c("up" = "#cb5a54", "down" = "#1176bd", "no" = "#7b7f80"),
+labels = c("Upregulated", "Downregulated", "Not significant")
+) +
+scale_alpha_manual(
+values = c("up" = 0.8, "down" = 0.8, "no" = 0.3),
+guide = "none"
+) +
+geom_label_repel(
+aes(label = label),
+fill = "#cb7935",
+color = "white",
+segment.size = 0.25,
+size = 4,
+max.overlaps = 20,
+fontface = "bold",
+label.size = NA,
+box.padding = 0.5,
+min.segment.length = 0
+) +
+geom_vline(xintercept = 0, linetype = "dashed", color = "gray40", linewidth = 0.5) +
+geom_hline(yintercept = 0, linetype = "dashed", color = "gray40", linewidth = 0.5) +
+theme_classic(base_size = 12) +
+theme(
+plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40"),
+axis.title = element_text(size = 12, face = "bold"),
+axis.text = element_text(size = 10),
+legend.position = "right",
+legend.title = element_text(face = "bold"),
+panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
+) +
+labs(
+title = "Differential Gene Expression in Cluster3 (SjS vs HC)",
+subtitle = "Volcano plot highlighting genes with significant expression changes",
+x = "∆ Percentage Difference (pct.1 - pct.2)",
+y = "Log₂ Fold Change"
+) +
+guides(color = guide_legend(override.aes = list(size = 3)))
+
+#Save high-resolution version
+ggsave(
+filename = here(output_dir, "Figure2D_volcano_plot.pdf"),
+plot = p2d,
+width = 8,
+height = 7,
+device = "pdf",
+dpi = 300
+)
+```
+
+---
+
+## **f. GO enrichment analysis of CD8⁺ T cell clusters**
+
+**(f) Dot plot showing Gene Ontology (GO) enrichment analysis of differentially expressed genes from four CD8⁺ T cell clusters (cluster2, cluster3, cluster11, cluster19).** The analysis reveals enrichment of immune-related pathways, T cell activation, and cytokine signaling, with cluster-specific enrichments highlighting distinct functional states.
+{r fig2f, fig.width=12, fig.height=9, warning=FALSE, message=FALSE}
+============================================================================
+FIGURE 2F: GO ENRICHMENT ANALYSIS
+============================================================================
+
+# Load differential expression results
+message("Loading differential expression results...")
+marker_files <- c(
+cluster2 = "cluster2.csv",
+cluster3 = "cluster3.csv",
+cluster11 = "cluster11.csv",
+cluster19 = "cluster19.csv"
+)
+
+#Load and process marker files
+marker_data <- list()
+for (clust_name in names(marker_files)) {
+file_path <- marker_files[clust_name]
+if (file.exists(file_path)) {
+df <- read.csv(file_path, header = TRUE)
+colnames(df)[1] <- "SYMBOL"
+# Filter significant genes
+sig_genes <- df %>%
+filter(p_val_adj < 0.01) %>%
+filter(abs(avg_log2FC) > 0.25) %>%
+pull(SYMBOL)
+if (length(sig_genes) > 0) {
+  # Convert to ENTREZID
+  conv <- tryCatch({
+    bitr(sig_genes,
+         fromType = "SYMBOL",
+         toType = "ENTREZID",
+         OrgDb = org.Hs.eg.db)
+  }, error = function(e) {
+    NULL
+  })
+  
+  if (!is.null(conv) && nrow(conv) > 0) {
+    marker_data[[clust_name]] <- conv$ENTREZID
+  }
+}
+}
+}
+
+#Run GO enrichment analysis
+if (length(marker_data) > 0) {
+message("Running GO enrichment analysis...")
+go_results <- compareCluster(
+geneClusters = marker_data,
+fun = "enrichGO",
+OrgDb = org.Hs.eg.db,
+ont = "BP", # Biological Process
+pvalueCutoff = 0.05,
+pAdjustMethod = "BH",
+qvalueCutoff = 0.2,
+readable = TRUE
+)
+
+#Create dot plot
+p2f <- dotplot(go_results,
+showCategory = 8,
+includeAll = FALSE,
+font.size = 10) +
+theme_minimal(base_size = 12) +
+theme(
+plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40"),
+axis.title = element_text(size = 12, face = "bold"),
+axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+axis.text.y = element_text(size = 10),
+legend.position = "right",
+legend.title = element_text(face = "bold", size = 10),
+legend.text = element_text(size = 8),
+strip.text = element_text(size = 11, face = "bold"),
+panel.grid.major = element_line(color = "gray90", linewidth = 0.3),
+panel.grid.minor = element_blank(),
+panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
+) +
+labs(
+title = "GO Enrichment Analysis of CD8⁺ T Cell Clusters",
+subtitle = "Biological processes enriched in differentially expressed genes",
+x = "Gene Ratio",
+y = "GO Biological Process"
+) +
+scale_color_gradientn(
+colors = c("blue", "green", "yellow", "red"),
+limits = c(0, 0.05),
+name = "Adjusted p-value"
+) +
+scale_size_continuous(
+range = c(3, 8),
+name = "Gene Count"
+)
+
+#Save high-resolution version
+ggsave(
+filename = here(output_dir, "Figure2F_GO_enrichment.pdf"),
+plot = p2f,
+width = 12,
+height = 9,
+device = "pdf",
+dpi = 300
+)
+```
+
+---
+
+## **Session Information**
+
+```{r session_info, echo=FALSE}
+# ============================================================================
+# SESSION INFORMATION
+# ============================================================================
+sessioninfo::session_info()
+```
