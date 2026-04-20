@@ -171,14 +171,14 @@ dev.off()
 
 ---
 
-## **d. Multi-dataset validation of cluster19 signature**
+## **c-d. Multi-dataset validation of cluster3/cluster19 signature**
 
-**(d) GSVA enrichment scores of the cluster19 gene signature across six independent Sjögren's syndrome transcriptomic datasets.** Validation in bulk RNA-seq datasets (GSE127952, GSE159574, GSE208260, GSE97614, GSE7451, GSE40611) shows consistent upregulation of the signature in Sjögren's syndrome patients compared to healthy controls.
+**(c-d) GSVA enrichment scores of the cluster3/cluster19 gene signature across six independent Sjögren's syndrome transcriptomic datasets.** Validation in bulk RNA-seq datasets (GSE127952, GSE159574, GSE208260, GSE97614, GSE7451, GSE40611) shows consistent upregulation of the signature in Sjögren's syndrome patients compared to healthy controls.
 
 
-```{r fig3d, fig.width=6, fig.height=5, warning=FALSE, message=FALSE}
+```{r fig3c-d, fig.width=8, fig.height=7, warning=FALSE, message=FALSE}
 ============================================================================
-FIGURE 3A: GSVA ANALYSIS ACROSS MULTIPLE DATASETS - CD8+ T CELL CLUSTER19
+FIGURE 3C-D: GSVA ANALYSIS ACROSS MULTIPLE DATASETS
 ============================================================================
 
 #Load necessary data
@@ -187,9 +187,318 @@ library(GSVA)
 library(ggplot2)
 library(ggpubr)
 
+#gs <- read.table("/data/shumin/2022-08-29-PSS-Project/singlecell-score/cluster3_gs.txt", header = T)
 gs <- read.table("/data/shumin/2022-08-29-PSS-Project/singlecell-score/cluster19_gs.txt", header = T)
 geneGSVA <- as.data.frame(gs$Gene)
 colnames(geneGSVA) <- 'gs'
 
+############################# GSE127952 #############################
+# 获得表达矩阵，注释信息，样本信息等
+GSE127952_eSet = GEOquery::getGEO("GSE127952")
+exp_GSE127952 <- exprs(GSE127952_eSet[[1]])
+
+# 通过pData函数获取分组信息
+pdata_GSE127952 <- pData(GSE127952_eSet[[1]])
+
+ids_GSE127952 <- read.table("/data/shumin/2022-08-29-PSS-Project/ids_GSE127952_2.txt", header = T)
+colnames(ids_GSE127952) = c("probe_id", "symbol")
+
+exp_GSE127952 = as.data.frame(exp_GSE127952) 
+exp_GSE127952$probe_id = rownames(exp_GSE127952)  # 将行名变为列名为probe_id的一列
+
+# exp是原来的表达矩阵
+exp2_GSE127952 = merge(exp_GSE127952, ids_GSE127952, by.x="probe_id", by.y="probe_id")  # 合并数据
+exp2_GSE127952 = exp2_GSE127952[!duplicated(exp2_GSE127952$symbol),]  # 按照symbol列去重
+
+# 数据框probe_exp的行名变成symbol
+exp2_GSE127952 = exp2_GSE127952[,c(16,2:15)]
+rownames(exp2_GSE127952) <- exp2_GSE127952[,1] 
+exp2_GSE127952 <- exp2_GSE127952[,-1]
+exp2_GSE127952 <- as.matrix(exp2_GSE127952)
+
+GSVA_GSE127952 <- GSVA::gsva(exp2_GSE127952, geneGSVA, method='gsva', kcdf='Gaussian')
+GSVA_GSE127952_plot <- cbind(t(GSVA_GSE127952), data.frame(c(rep("PSS", 8), rep("HC", 6))))
+colnames(GSVA_GSE127952_plot) <- c("GSVA_score", "Group")
+
+p.GSE127952_cluster19 <- ggplot(GSVA_GSE127952_plot, aes(Group, GSVA_score))+
+  stat_boxplot(geom="errorbar", width=0.1,size=0.5,position=position_dodge(0.6),color="blue")+
+  geom_boxplot(position=position_dodge(0.6),
+               size=0.5,
+               width=0.3,
+               fill="gold",
+               color="blue",
+               outlier.color = "blue",
+               outlier.fill = "red",
+               outlier.shape = 19,
+               outlier.size = 1.5,
+               outlier.stroke = 0.5,
+               outlier.alpha = 45,
+               notch = F,
+               notchwidth = 0.5)+
+  theme(axis.title = element_text(size=18),
+        axis.text = element_text(size=14)) +
+  theme_bw()+
+  stat_compare_means(comparisons = list(c("HC", "PSS")), method = "t.test")
 
 
+############################# GSE159574 #############################
+exp_GSE159574 <- read.table("/data/shumin/2022-08-29-PSS-Project/input/RNA-seq/cpm_GSE159574_sort.txt", header = T, row.names = 1)
+exp_GSE159574 <- as.matrix(exp_GSE159574)
+
+GSVA_GSE159574 <- GSVA::gsva(exp_GSE159574, geneGSVA, method='gsva', kcdf='Gaussian')
+GSVA_GSE159574_plot <- cbind(t(GSVA_GSE159574), data.frame(c(rep("HC", 13), rep("PSS", 16))))
+colnames(GSVA_GSE159574_plot) <- c("GSVA_score", "Group")
+
+p.GSE159574_γδ_T <- ggplot(GSVA_GSE159574_plot, aes(Group, GSVA_score))+
+  stat_boxplot(geom="errorbar", width=0.1,size=0.5,position=position_dodge(0.6),color="blue")+
+  geom_boxplot(position=position_dodge(0.6),
+               size=0.5,
+               width=0.3,
+               fill="gold",
+               color="blue",
+               outlier.color = "blue",
+               outlier.fill = "red",
+               outlier.shape = 19,
+               outlier.size = 1.5,
+               outlier.stroke = 0.5,
+               outlier.alpha = 45,
+               notch = F,
+               notchwidth = 0.5)+
+  theme(axis.title = element_text(size=18),
+        axis.text = element_text(size=14)) +
+  theme_bw()+
+  stat_compare_means(comparisons = list(c("HC", "PSS")), method = "t.test")
+
+
+
+############################# GSE208260 #############################
+library(clusterProfiler)
+library(org.Hs.eg.db)
+GSE208260 <- read.table("/data/shumin/2022-08-29-PSS-Project/input/GSE157278/03_cellrange_data/GSE208260_P-20171204-0005_GRCh37ERCC-ensembl75-genes.count.txt", header = T)
+
+df_GSE208260 <- bitr(GSE208260$ENSEMBL, 
+                     fromType = "ENSEMBL",
+                     toType =  "SYMBOL",
+                     OrgDb = org.Hs.eg.db)
+
+#按照SYMBOL合并注释信息
+GSE208260_merge <- merge(GSE208260, df_GSE208260, by='ENSEMBL') 
+
+exp_GSE208260 = GSE208260_merge[,c(59,2:58)]
+exp_GSE208260 = exp_GSE208260[!duplicated(exp_GSE208260$SYMBOL),]  # 按照symbol列去重
+rownames(exp_GSE208260) <- exp_GSE208260[,1] 
+exp_GSE208260 <- exp_GSE208260[,-1]
+exp_GSE208260 <- as.matrix(exp_GSE208260)
+GSE208260_cpm <- t(t(exp_GSE208260)/colSums(exp_GSE208260) * 1000000)
+
+GSVA_GSE208260 <- GSVA::gsva(GSE208260_cpm, geneGSVA, method='gsva', kcdf='Gaussian')
+GSVA_GSE208260_plot <- cbind(t(GSVA_GSE208260), data.frame(c("PSS","PSS","PSS","PSS","HC","HC","PSS","HC","HC","PSS","HC","HC","HC",
+                                                             "PSS","HC","PSS","HC","PSS","PSS","PSS","PSS","PSS","PSS","PSS","PSS",
+                                                             "HC","HC","PSS","HC","PSS","PSS","PSS","HC","PSS","PSS","PSS","PSS","PSS",
+                                                             "PSS","PSS","PSS","HC","PSS","HC","PSS","HC","PSS","PSS","HC","PSS","HC",
+                                                             "PSS","HC","PSS","PSS","PSS","PSS")))
+colnames(GSVA_GSE208260_plot) <- c("GSVA_score", "Group")
+
+p.GSE208260_cluster19 <- ggplot(GSVA_GSE208260_plot,aes(Group, GSVA_score))+
+  stat_boxplot(geom="errorbar", width=0.1,size=0.5,position=position_dodge(0.6),color="blue")+
+  geom_boxplot(position=position_dodge(0.6),
+               size=0.5,
+               width=0.3,
+               fill="gold",
+               color="blue",
+               outlier.color = "blue",
+               outlier.fill = "red",
+               outlier.shape = 19,
+               outlier.size = 1.5,
+               outlier.stroke = 0.5,
+               outlier.alpha = 45,
+               notch = F,
+               notchwidth = 0.5)+
+  theme(axis.title = element_text(size=18),
+        axis.text = element_text(size=14)) +
+  theme_bw()+
+  stat_compare_means(comparisons = list(c("HC", "PSS")), method = "t.test")
+
+
+############################# GSE97614 #############################
+# 获得表达矩阵，注释信息，样本信息等
+GSE97614_eSet = GEOquery::getGEO("GSE97614")
+exp_GSE97614 <- exprs(GSE97614_eSet[[1]])
+
+# 通过pData函数获取分组信息
+pdata_GSE97614 <- pData(GSE97614_eSet[[1]])
+
+library(hugene10sttranscriptcluster.db) # 参考：http://www.bio-info-trainee.com/1399.html
+ls("package:hugene10sttranscriptcluster.db") 
+
+ids_GSE97614 <- toTable(hugene10sttranscriptclusterSYMBOL)  # 提取 
+colnames(ids_GSE97614) = c("probe_id", "symbol")
+
+exp_GSE97614 = as.data.frame(exp_GSE97614) 
+exp_GSE97614$probe_id = rownames(exp_GSE97614)  # 将行名变为列名为probe_id的一列
+
+# exp是原来的表达矩阵
+exp2_GSE97614 = merge(exp_GSE97614, ids_GSE97614, by.x="probe_id", by.y="probe_id")  # 合并数据
+exp2_GSE97614 = exp2_GSE97614[!duplicated(exp2_GSE97614$symbol),]  # 按照symbol列去重
+
+# 数据框probe_exp的行名变成symbol
+exp2_GSE97614 = exp2_GSE97614[,c(14,2:13)]
+rownames(exp2_GSE97614) <- exp2_GSE97614[,1] 
+exp2_GSE97614 <- exp2_GSE97614[,-1]
+exp2_GSE97614 <- as.matrix(exp2_GSE97614)
+
+GSVA_GSE97614 <- GSVA::gsva(exp2_GSE97614, geneGSVA, method='gsva', kcdf='Gaussian')
+GSVA_GSE97614_plot <- cbind(t(GSVA_GSE97614), data.frame(c(rep("HC", 3), rep("PSS", 9))))
+colnames(GSVA_GSE97614_plot) <- c("GSVA_score", "Group")
+
+p.GSE97614_cluster19 <- ggplot(GSVA_GSE97614_plot, aes(Group, GSVA_score))+
+  stat_boxplot(geom="errorbar", width=0.1,size=0.5,position=position_dodge(0.6),color="blue")+
+  geom_boxplot(position=position_dodge(0.6),
+               size=0.5,
+               width=0.3,
+               fill="gold",
+               color="blue",
+               outlier.color = "blue",
+               outlier.fill = "red",
+               outlier.shape = 19,
+               outlier.size = 1.5,
+               outlier.stroke = 0.5,
+               outlier.alpha = 45,
+               notch = F,
+               notchwidth = 0.5)+
+  theme(axis.title = element_text(size=18),
+        axis.text = element_text(size=14)) +
+  theme_bw()+
+  stat_compare_means(comparisons = list(c("HC", "PSS")), method = "t.test")
+
+
+
+############################# GSE7451 #############################
+# 获得表达矩阵，注释信息，样本信息等
+GSE7451_eSet = GEOquery::getGEO("GSE7451")
+exp_GSE7451 <- exprs(GSE7451_eSet[[1]])
+
+# 通过pData函数获取分组信息
+pdata_GSE7451 <- pData(GSE7451_eSet[[1]])
+
+library(hgu133plus2.db) # 参考：http://www.bio-info-trainee.com/1399.html
+ls("package:hgu133plus2.db") 
+
+ids_GSE7451 <- toTable(hgu133plus2SYMBOL)  # 提取  
+colnames(ids_GSE7451) = c("probe_id", "symbol")
+
+exp_GSE7451 = as.data.frame(exp_GSE7451) 
+exp_GSE7451$probe_id = rownames(exp_GSE7451)  # 将行名变为列名为probe_id的一列
+
+# exp是原来的表达矩阵
+exp2_GSE7451 = merge(exp_GSE7451, ids_GSE7451, by.x="probe_id", by.y="probe_id")  # 合并数据
+exp2_GSE7451 = exp2_GSE7451[!duplicated(exp2_GSE7451$symbol),]  # 按照symbol列去重
+
+# 数据框probe_exp的行名变成symbol
+exp2_GSE7451 = exp2_GSE7451[,c(22,2:21)]
+rownames(exp2_GSE7451) <- exp2_GSE7451[,1] 
+exp2_GSE7451 <- exp2_GSE7451[,-1]
+exp2_GSE7451 <- as.matrix(exp2_GSE7451)
+
+GSVA_GSE7451 <- GSVA::gsva(exp2_GSE7451, geneGSVA, method='gsva', kcdf='Gaussian')
+GSVA_GSE7451_plot <- cbind(t(GSVA_GSE7451), data.frame(c(rep("HC", 10), rep("PSS", 10))))
+colnames(GSVA_GSE7451_plot) <- c("GSVA_score", "Group")
+
+p.GSE7451_cluster19 <- ggplot(GSVA_GSE7451_plot, aes(Group, GSVA_score))+
+  stat_boxplot(geom="errorbar", width=0.1,size=0.5,position=position_dodge(0.6),color="blue")+
+  geom_boxplot(position=position_dodge(0.6),
+               size=0.5,
+               width=0.3,
+               fill="gold",
+               color="blue",
+               outlier.color = "blue",
+               outlier.fill = "red",
+               outlier.shape = 19,
+               outlier.size = 1.5,
+               outlier.stroke = 0.5,
+               outlier.alpha = 45,
+               notch = F,
+               notchwidth = 0.5)+
+  theme(axis.title = element_text(size=18),
+        axis.text = element_text(size=14)) +
+  theme_bw()+
+  stat_compare_means(comparisons = list(c("HC", "PSS")), method = "t.test")
+
+
+
+
+############################# GSE40611 #############################
+# 获得表达矩阵，注释信息，样本信息等
+GSE40611_eSet = GEOquery::getGEO("GSE40611")
+exp_GSE40611 <- exprs(GSE40611_eSet[[1]])
+
+# 通过pData函数获取分组信息
+pdata_GSE40611 <- pData(GSE40611_eSet[[1]])
+
+library(hgu133plus2.db) # 参考：http://www.bio-info-trainee.com/1399.html
+ls("package:hgu133plus2.db") 
+
+ids_GSE40611 <- toTable(hgu133plus2SYMBOL)  
+colnames(ids_GSE40611) = c("probe_id", "symbol")
+
+exp_GSE40611 = as.data.frame(exp_GSE40611) 
+exp_GSE40611$probe_id = rownames(exp_GSE40611)  
+
+# exp是原来的表达矩阵
+exp2_GSE40611 = merge(exp_GSE40611, ids_GSE40611, by.x="probe_id", by.y="probe_id") 
+exp2_GSE40611 = exp2_GSE40611[!duplicated(exp2_GSE40611$symbol),]  
+
+# 数据框probe_exp的行名变成symbol
+exp2_GSE40611 = exp2_GSE40611[,c(51,2:29,44:50)]
+rownames(exp2_GSE40611) <- exp2_GSE40611[,1] 
+exp2_GSE40611 <- exp2_GSE40611[,-1]
+exp2_GSE40611 <- as.matrix(exp2_GSE40611)
+
+GSVA_GSE40611 <- GSVA::gsva(exp2_GSE40611, geneGSVA, method='gsva', kcdf='Gaussian')
+GSVA_GSE40611_plot <- cbind(t(GSVA_GSE40611), data.frame(c(rep("HC", 18), rep("PSS", 17))))
+colnames(GSVA_GSE40611_plot) <- c("GSVA_score", "Group")
+
+p.GSE40611_cluster19 <- ggplot(GSVA_GSE40611_plot, aes(Group, GSVA_score))+
+  stat_boxplot(geom="errorbar", width=0.1,size=0.5,position=position_dodge(0.6),color="blue")+
+  geom_boxplot(position=position_dodge(0.6),
+               size=0.5,
+               width=0.3,
+               fill="gold",
+               color="blue",
+               outlier.color = "blue",
+               outlier.fill = "red",
+               outlier.shape = 19,
+               outlier.size = 1.5,
+               outlier.stroke = 0.5,
+               outlier.alpha = 45,
+               notch = F,
+               notchwidth = 0.5)+
+  theme(axis.title = element_text(size=18),
+        axis.text = element_text(size=14)) +
+  theme_bw()+
+  stat_compare_means(comparisons = list(c("HC", "PSS")), method = "t.test")
+
+
+p3d <- p.GSE127952_cluster19 + p.GSE159574_γδ_T + p.GSE208260_cluster19 + p.GSE97614_cluster19 + p.GSE7451_cluster19 + p.GSE40611_cluster19 + plot_layout(ncol=3)
+
+#Save high-resolution version
+ggsave(
+filename = here(output_dir, "Figure3D_GSVA_plot.pdf"),
+plot = p3d,
+width = 8,
+height = 7,
+device = "pdf",
+dpi = 300
+)
+```
+
+---
+
+## **Session Information**
+
+```{r session_info, echo=FALSE}
+# ============================================================================
+# SESSION INFORMATION
+# ============================================================================
+sessioninfo::session_info()
+```
