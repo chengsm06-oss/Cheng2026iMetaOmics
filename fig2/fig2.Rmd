@@ -19,15 +19,15 @@ output:
 # 1. INITIALIZATION AND SETUP
 # ============================================================================
 knitr::opts_chunk$set(
-  echo = TRUE,           # 显示代码
-  warning = TRUE,        # 显示警告
-  message = TRUE,        # 显示消息
-  error = TRUE,          # 显示错误
-  fig.width = 10,        # 默认图形宽度
-  fig.height = 7,        # 默认图形高度
-  fig.align = "center",  # 图形居中
-  cache = FALSE,         # 不缓存结果（首次运行可设为TRUE加速）
-  dpi = 300              # 图形分辨率
+  echo = TRUE,           
+  warning = TRUE,        
+  message = TRUE,        
+  error = TRUE,          
+  fig.width = 10,        
+  fig.height = 7,        
+  fig.align = "center",  
+  cache = FALSE,        
+  dpi = 300              
 )
 
 # 清理工作空间
@@ -48,26 +48,26 @@ set.seed(123)
 # ============================================================================
 # 核心分析包
 
-library(Seurat) # 单细胞分析
-library(plotrix) # 3D饼图
+library(Seurat) 
+library(plotrix) 
 
 # 可视化包
-library(ggplot2) # 基础绘图
-library(patchwork) # 图形组合
-library(RColorBrewer) # 颜色调色板
-library(viridis) # 科学配色
-library(ggrepel) # 标签防重叠
-library(ggstatsplot) # 统计可视化
+library(ggplot2) 
+library(patchwork) 
+library(RColorBrewer) 
+library(viridis) 
+library(ggrepel) 
+library(ggstatsplot) 
 
 # 功能分析包
-library(clusterProfiler) # GO富集分析
-library(org.Hs.eg.db) # 人类基因注释
-library(enrichplot) # 富集分析可视化
+library(clusterProfiler) 
+library(org.Hs.eg.db) 
+library(enrichplot) 
 
 # 数据处理包
-library(dplyr) # 数据操作
-library(tidyr) # 数据整理
-library(tibble) # 现代数据框
+library(dplyr) 
+library(tidyr) 
+library(tibble) 
 
 # 检查并安装缺失包
 required_packages <- c("Seurat", "ggplot2", "plotrix", "dplyr", "clusterProfiler")
@@ -121,7 +121,221 @@ pie3D(df$scales,
       main = "Proportion of CD8⁺ T Cell Subsets",
       labelcex = 1.2)
 dev.off()
-
 ---
 
+## **b. Feature expression in CD8⁺ T cell clusters**
+  
+**(b) Violin plots showing expression levels of 18 key marker genes across the four CD8⁺ T cell clusters.** Genes were selected based on differential expression analysis and include markers of T cell activation, exhaustion, and function. Cluster3 shows high expression of CCR7 and LEF1, while cluster19 expresses FCRL6 and LAG3.
+{r fig2b, fig.width=12, fig.height=12, warning=FALSE, message=FALSE}
+============================================================================
+FIGURE 2B: FEATURE EXPRESSION IN CD8⁺ T CELL CLUSTERS
+============================================================================
 
+Idents(scRNA_harmony) <- 'seurat_clusters'
+CD8_T_cell <- subset(x = scRNA_harmony, idents = c("2", "3", "11", "19"))
+Define marker genes
+
+marker_genes <- c(
+  "FCRL6", "ADGRG1", "LAG3", "LINC02446", "MAL", "PASK",
+  "NELL2", "LEF1", "CCR7", "CD28", "MPZL3", "PTGER2",
+  "TYMS", "PCLAF", "CD38", "MCM5", "CENPM", "RRM2"
+)
+Create violin plots
+
+p2b <- VlnPlot(
+  CD8_T_cell,
+  features = marker_genes,
+  pt.size = 0,
+  ncol = 3,
+  cols = cd8_cluster_colors
+) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40"),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 12, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+    axis.text.y = element_text(size = 10),
+    legend.position = "none",
+    panel.background = element_rect(fill = "white", color = NA),
+    panel.grid = element_line(color = "gray90", linewidth = 0.2),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8),
+    strip.text = element_text(size = 11, face = "bold")
+  ) +
+  labs(
+    title = "Marker Gene Expression in CD8⁺ T Cell Subsets",
+    subtitle = "Violin plots showing expression of 18 key genes",
+    y = "Expression Level"
+  )
+
+#Save high-resolution version
+ggsave(
+  filename = here(output_dir, "Figure2B_violin_plots.pdf"),
+  plot = p2b,
+  width = 12,
+  height = 12,
+  device = "pdf",
+  dpi = 300
+)
+---
+
+## **c. Dot plot of gene expression in cluster3**
+  
+**(c) Dot plot visualizing expression patterns of 45 selected genes in CD8⁺ T cell cluster3.** Color intensity represents average expression level, while dot size indicates the percentage of cells expressing each gene. The plot reveals distinct gene modules associated with T cell activation, cytotoxicity, and regulation.
+{r fig2c, fig.width=8, fig.height=10, warning=FALSE, message=FALSE}
+============================================================================
+FIGURE 2C: DOT PLOT OF GENE EXPRESSION IN CLUSTER3
+============================================================================
+  
+#Define expanded gene set
+dot_genes <- c(
+  "FCRL6", "LINC01871", "C1orf21", "ADGRG1", "LAG3", "KLRG1", "LINC02446",
+  "KLRC4", "ARMH1", "LYPD3", "MAL", "SCML1", "BTBD11", "DNAJB4", "MYC",
+  "ANKRD37", "NELL2", "LEF1", "CCR7", "PASK", "GZMK", "LYAR", "IFNG-AS1",
+  "FXYD2", "JUNB", "DUSP1", "TYMS", "PCLAF", "CD38", "MCM5", "CENPM",
+  "RRM2", "TXNDC5", "PTTG1", "TK1", "NUSAP1", "CLSPN", "CENPU", "GINS2", "CDT1"
+)
+
+#Create dot plot
+p2c <- DotPlot(
+  CD8_T_cell,
+  features = dot_genes,
+  assay = 'RNA'
+) +
+  coord_flip() +
+  theme_bw() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40"),
+    panel.grid = element_blank(),
+    axis.title = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+    axis.text.y = element_text(size = 9, face = "italic"),
+    legend.position = "right",
+    legend.title = element_text(face = "bold", size = 10),
+    legend.text = element_text(size = 8),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
+  ) +
+  scale_color_gradientn(
+    values = seq(0, 1, 0.2),
+    colors = c('#330066', '#336699', '#66CC66', '#FFCC33'),
+    name = "Average Expression"
+  ) +
+  scale_size_continuous(
+    range = c(2, 8),
+    name = "Percent Expressed"
+  ) +
+  labs(
+    title = "Gene Expression Patterns in Cluster3",
+    subtitle = "45 selected genes showing distinct expression modules"
+  )
+
+#Save high-resolution version
+ggsave(
+  filename = here(output_dir, "Figure2C_dot_plot.pdf"),
+  plot = p2c,
+  width = 8,
+  height = 10,
+  device = "pdf",
+  dpi = 300
+)
+---
+  
+## **d. Differential gene expression in cluster3**
+  
+**(d) Volcano plot comparing gene expression between Sjögren's syndrome patients and healthy controls in CD8⁺ T cell cluster3.** Genes with adjusted p-value < 0.05 and |log2 fold change| > 0.15 are considered significant. Key genes GIMAP5, GIMAP4, and SNHG25 are highlighted, suggesting their potential role in SjS pathogenesis.
+{r fig2d, fig.width=8, fig.height=7, warning=FALSE, message=FALSE}
+============================================================================
+FIGURE 2D: DIFFERENTIAL GENE EXPRESSION IN CLUSTER3
+============================================================================
+
+#Subset cluster3
+Idents(CD8_T_cell) <- 'seurat_clusters'
+sub_cluster3 <- subset(CD8_T_cell, idents = "3")
+Find differentially expressed genes
+
+message("Identifying differentially expressed genes in cluster3...")
+cluster3.markers <- FindMarkers(
+sub_cluster3,
+ident.1 = "SjS",
+ident.2 = "HC",
+group.by = "Group",
+logfc.threshold = 0,
+min.pct = 0.1
+)
+Prepare data for volcano plot
+
+cluster3.markers$names <- rownames(cluster3.markers)
+cluster3.markersDifference<−cluster3.markerspct.1 - cluster3.markers$pct.2
+Classify genes
+
+cluster3.markers$group <- "no"
+cluster3.markersgroup[cluster3.markersavg_log2FC >= 0.25 &
+cluster3.markers$Difference >= 0.1 &
+cluster3.markers$pct.2 <= 0.5] <- "up"
+cluster3.markersgroup[cluster3.markersavg_log2FC <= (-0.25) &
+cluster3.markers$Difference <= -0.1 &
+cluster3.markers$pct.1 <= 0.5] <- "down"
+Label key genes
+
+label_genes <- c("GIMAP5", "GIMAP4", "SNHG25")
+cluster3.markers$label <- ifelse(
+cluster3.markers$names %in% label_genes,
+cluster3.markers$names,
+""
+)
+Create volcano plot
+
+p2d <- ggplot(cluster3.markers, aes(x = Difference, y = avg_log2FC)) +
+geom_point(size = 1.5, aes(color = group, alpha = group)) +
+scale_color_manual(
+name = "Expression",
+values = c("up" = "#cb5a54", "down" = "#1176bd", "no" = "#7b7f80"),
+labels = c("Upregulated", "Downregulated", "Not significant")
+) +
+scale_alpha_manual(
+values = c("up" = 0.8, "down" = 0.8, "no" = 0.3),
+guide = "none"
+) +
+geom_label_repel(
+aes(label = label),
+fill = "#cb7935",
+color = "white",
+segment.size = 0.25,
+size = 4,
+max.overlaps = 20,
+fontface = "bold",
+label.size = NA,
+box.padding = 0.5,
+min.segment.length = 0
+) +
+geom_vline(xintercept = 0, linetype = "dashed", color = "gray40", linewidth = 0.5) +
+geom_hline(yintercept = 0, linetype = "dashed", color = "gray40", linewidth = 0.5) +
+theme_classic(base_size = 12) +
+theme(
+plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40"),
+axis.title = element_text(size = 12, face = "bold"),
+axis.text = element_text(size = 10),
+legend.position = "right",
+legend.title = element_text(face = "bold"),
+panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8)
+) +
+labs(
+title = "Differential Gene Expression in Cluster3 (SjS vs HC)",
+subtitle = "Volcano plot highlighting genes with significant expression changes",
+x = "∆ Percentage Difference (pct.1 - pct.2)",
+y = "Log₂ Fold Change"
+) +
+guides(color = guide_legend(override.aes = list(size = 3)))
+Save high-resolution version
+
+ggsave(
+filename = here(output_dir, "Figure2D_volcano_plot.pdf"),
+plot = p2d,
+width = 8,
+height = 7,
+device = "pdf",
+dpi = 300
+)
