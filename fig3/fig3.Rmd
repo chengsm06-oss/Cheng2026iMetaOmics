@@ -1,1 +1,172 @@
-qqq
+---
+title: "Figure 3. Functional characterization of gene signatures in Sjögren's syndrome"
+author: "Cheng"
+date: "2026/04/21"
+output:
+  html_document:
+    toc: false
+    toc_float: false
+    code_folding: hide
+    theme: flatly
+    highlight: tango
+    fig_width: 10
+    fig_height: 7
+    fig_caption: true
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+# ============================================================================
+# 1. INITIALIZATION AND SETUP
+# ============================================================================
+knitr::opts_chunk$set(
+  echo = TRUE,           
+  warning = TRUE,        
+  message = TRUE,        
+  error = TRUE,          
+  fig.width = 10,        
+  fig.height = 7,        
+  fig.align = "center",  
+  cache = FALSE,        
+  dpi = 300              
+)
+
+# 清理工作空间
+rm(list = ls())
+gc()
+
+# 设置输出目录
+output_dir <- "."
+if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+
+# 设置随机种子保证可重复性
+set.seed(123)
+```
+
+```{r libraries, include=FALSE, warning=FALSE, message=FALSE}
+# ============================================================================
+# 2. LOAD REQUIRED LIBRARIES
+# ============================================================================
+#Single-cell analysis
+library(Seurat)
+library(AUCell)
+library(Nebulosa)
+
+#Gene set analysis
+library(GSEABase)
+library(clusterProfiler)
+library(GSVA)
+library(GEOquery)
+
+#Visualization
+library(ggplot2)
+library(ggpubr)
+library(patchwork)
+library(ggrepel)
+library(viridis)
+library(RColorBrewer)
+library(cowplot)
+library(ggsci)
+
+#Data processing
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(reshape2)
+library(stringr)
+
+#Functional packages
+library(here)
+library(hugene10sttranscriptcluster.db)
+library(hgu133plus2.db)
+library(org.Hs.eg.db)
+
+#Check and install missing packages
+required_packages <- c("Seurat", "AUCell", "GSVA", "GEOquery", "ggplot2", "dplyr")
+missing_packages <- required_packages[!required_packages %in% installed.packages()]
+if (length(missing_packages) > 0) {
+message("Installing missing packages: ", paste(missing_packages, collapse = ", "))
+BiocManager::install(missing_packages, update = FALSE)
+}
+```
+
+<br>
+
+# **Figure 3: Functional validation of Sjögren's syndrome gene signatures**
+
+**Figure Legend:** Functional validation of Sjögren's syndrome-associated gene signatures identified in specific T cell subsets. (a-b) AUCell analysis showing activity scores of gene signatures in (a) CD8⁺ T cell cluster3 and (b) γδ T cell cluster15. (c) GSVA enrichment scores of cluster19 signature across six independent Sjögren's syndrome transcriptomic datasets, comparing patients (PSS) vs. healthy controls (HC).
+
+---
+## **a. AUCell analysis of CD8⁺ T cell cluster3 signature**
+**(a) Activity scores of the cluster3-specific gene signature in CD8⁺ T cells.** AUCell calculates the activity of the gene signature in each cell based on the ranking of gene expression. UMAP visualization (left) shows spatial distribution of signature activity, while violin plots (right) compare activity scores across CD8⁺ T cell clusters.
+
+```{r fig3a, fig.width=6, fig.height=5, warning=FALSE, message=FALSE}
+============================================================================
+FIGURE 3A: AUCELL ANALYSIS - CD8+ T CELL CLUSTER3
+============================================================================
+
+#Load necessary data
+library(AUCell)
+library(clusterProfiler)
+
+library(ggplot2)
+library(Seurat)
+library(GSEABase)
+
+# AUCell_buildRankings
+# 计算gene signatures分值
+cells_rankings <- AUCell_buildRankings(sub_CD8_T_cell@assays$RNA@counts, nCores=1, plotStats=TRUE)  
+
+## 制作基因集
+geneSets <- cluster3_a
+extraGeneSets <- c(GeneSet(sample(cluster3_a),setName="CD8_gene"))
+
+geneSets1 <- GeneSetCollection(extraGeneSets)
+names(geneSets1) 
+
+## 计算AUC
+cells_AUC <- AUCell_calcAUC(geneSets1, cells_rankings)
+cells_AUC
+
+pdf('Figure3A_cluster3_cells_assignment.pdf',width = 6, height = 5)
+cells_assignment <- AUCell_exploreThresholds(cells_AUC, plotHist=TRUE, assign=TRUE) 
+dev.off()
+```
+
+---
+
+```{r fig3b, fig.width=6, fig.height=5, warning=FALSE, message=FALSE}
+============================================================================
+FIGURE 3B: AUCELL ANALYSIS - CD8+ T CELL CLUSTER19
+============================================================================
+
+#Load necessary data
+library(AUCell)
+library(clusterProfiler)
+
+library(ggplot2)
+library(Seurat)
+library(GSEABase)
+
+# AUCell_buildRankings
+# 计算gene signatures分值
+cells_rankings <- AUCell_buildRankings(sub_CD8_T_cell@assays$RNA@counts, nCores=1, plotStats=TRUE)  
+
+## 制作基因集
+geneSets <- cluster19_a
+extraGeneSets <- c(GeneSet(sample(cluster19_a),setName="CD8_gene"))
+
+geneSets1 <- GeneSetCollection(extraGeneSets)
+names(geneSets1) 
+
+## 计算AUC
+cells_AUC <- AUCell_calcAUC(geneSets1, cells_rankings)
+cells_AUC
+
+pdf('Figure3_cluster19_cells_assignment.pdf',width = 6, height = 5)
+cells_assignment <- AUCell_exploreThresholds(cells_AUC, plotHist=TRUE, assign=TRUE) 
+dev.off()
+```
+
+---
+
+
