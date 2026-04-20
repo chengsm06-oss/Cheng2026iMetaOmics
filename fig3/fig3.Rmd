@@ -169,4 +169,27 @@ dev.off()
 
 ---
 
+---
+
+## **d. Multi-dataset validation of cluster19 signature**
+
+**(d) GSVA enrichment scores of the cluster19 gene signature across six independent Sjögren's syndrome transcriptomic datasets.** Validation in bulk RNA-seq datasets (GSE127952, GSE159574, GSE208260, GSE97614, GSE7451, GSE40611) shows consistent upregulation of the signature in Sjögren's syndrome patients compared to healthy controls.
+
+
+```{r fig3d, fig.width=6, fig.height=5, warning=FALSE, message=FALSE}
+============================================================================
+FIGURE 3A: GSVA ANALYSIS ACROSS MULTIPLE DATASETS - CD8+ T CELL CLUSTER19
+============================================================================
+
+#Load necessary data
+library(GEOquery)
+library(GSVA)
+library(ggplot2)
+library(ggpubr)
+
+gs <- read.table("/data/shumin/2022-08-29-PSS-Project/singlecell-score/cluster19_gs.txt", header = T)
+geneGSVA <- as.data.frame(gs$Gene)
+colnames(geneGSVA) <- 'gs'
+
+
 
