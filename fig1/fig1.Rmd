@@ -151,37 +151,6 @@ ggsave(
   device = "pdf",
   dpi = 300
 )
-
-# Save PNG for quick viewing
-ggsave(
-  filename = here(output_dir, "Figure1A_tSNE_clusters.png"),
-  plot = p1a,
-  width = 9,
-  height = 8,
-  dpi = 300,
-  bg = "white"
-)
-
-# Display plot
-p1a
-
-# Print cluster statistics
-cluster_stats <- scRNA_harmony@meta.data %>%
-  group_by(seurat_clusters) %>%
-  summarise(
-    n_cells = n(),
-    percent = round(n() / ncol(scRNA_harmony) * 100, 2)
-  ) %>%
-  arrange(seurat_clusters)
-
-message("\nCluster composition:")
-print(cluster_stats)
-```
-
-**Table: Cluster size distribution**
-```{r cluster_table, echo=FALSE}
-kable(cluster_stats, caption = "Number of cells per cluster") %>%
-  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
 ```
 
 ---
@@ -330,28 +299,6 @@ ggsave(
   height = 8,
   device = "pdf"
 )
-
-# Display plot
-p1b
-
-# Print annotation summary
-annotation_summary <- scRNA_harmony@meta.data %>%
-  group_by(Major.CellType) %>%
-  summarise(
-    n_cells = n(),
-    percent = round(n() / ncol(scRNA_harmony) * 100, 2),
-    n_clusters = n_distinct(seurat_clusters)
-  ) %>%
-  arrange(desc(n_cells))
-
-message("\nMajor cell type composition:")
-print(annotation_summary)
-```
-
-**Table: Major cell type distribution**
-```{r major_type_table, echo=FALSE}
-kable(annotation_summary, caption = "Distribution of major cell types") %>%
-  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
 ```
 
 ---
@@ -485,20 +432,6 @@ ggsave(
   device = "pdf"
 )
 
-# Display the plot
-p1c
-
-# Save individual plots for potential supplemental figures
-for (cell_type in names(marker_sets)) {
-  ggsave(
-    filename = here(output_dir, sprintf("marker_%s.pdf", gsub("/", "_", cell_type))),
-    plot = density_plots[[cell_type]],
-    width = 4,
-    height = 4
-  )
-}
-
-message("All marker density plots created and saved.")
 ```
 
 ---
@@ -752,8 +685,6 @@ ggsave(
   device = "pdf"
 )
 
-# Display plot
-combined_plot
 ```
 
 ---
