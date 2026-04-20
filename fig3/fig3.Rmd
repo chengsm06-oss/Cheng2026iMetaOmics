@@ -162,7 +162,7 @@ names(geneSets1)
 cells_AUC <- AUCell_calcAUC(geneSets1, cells_rankings)
 cells_AUC
 
-pdf('Figure3_cluster19_cells_assignment.pdf',width = 6, height = 5)
+pdf('Figure3b_cluster19_cells_assignment.pdf',width = 6, height = 5)
 cells_assignment <- AUCell_exploreThresholds(cells_AUC, plotHist=TRUE, assign=TRUE) 
 dev.off()
 ```
