@@ -1,1 +1,204 @@
-111
+---
+title: "Figure 6. Cell-cell communication networks in Sjögren's syndrome PBMCs"
+author: "Cheng"
+date: "2026/04/21"
+output: 
+  html_document:
+    toc: false
+    toc_float: false
+    code_folding: hide
+    theme: flatly
+    highlight: tango
+    fig_width: 10
+    fig_height: 7
+    fig_caption: true
+---
+
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+# ============================================================================
+# 1. INITIALIZATION AND SETUP
+# ============================================================================
+knitr::opts_chunk$set(
+  echo = TRUE,           
+  warning = TRUE,        
+  message = TRUE,       
+  error = TRUE,          
+  fig.width = 10,        
+  fig.height = 7,        
+  fig.align = "center",  
+  cache = FALSE,         
+  dpi = 300              
+)
+
+# 清理工作空间
+rm(list = ls())
+gc()
+
+# 设置输出目录
+output_dir <- "."
+if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+
+# 设置随机种子保证可重复性
+set.seed(123)
+```
+
+```{r libraries, include=FALSE, warning=FALSE, message=FALSE}
+# ============================================================================
+# 2. LOAD REQUIRED LIBRARIES
+# ============================================================================
+#CellChat 相关
+library(CellChat)
+library(NMF)
+library(ggalluvial)
+library(patchwork)
+
+#数据处理
+library(tidyverse)
+library(Seurat)
+library(SeuratData)
+library(here)
+
+#可视化
+library(ggplot2)
+library(RColorBrewer)
+library(viridis)
+library(ComplexHeatmap)
+library(circlize)
+
+#检查并安装缺失包
+required_packages <- c("CellChat", "NMF", "ggalluvial", "tidyverse", "Seurat")
+missing_packages <- required_packages[!required_packages %in% installed.packages()]
+if (length(missing_packages) > 0) {
+message("Installing missing packages: ", paste(missing_packages, collapse = ", "))
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager")
+BiocManager::install(missing_packages, update = FALSE)
+}
+```
+
+<br>
+
+# **Figure 6: Cell-cell communication networks in Sjögren's syndrome**
+
+**Figure Legend:** Comprehensive cell-cell communication analysis of PBMCs from healthy controls (HC) and Sjögren's syndrome (SjS) patients. (a) Overview of inferred ligand-receptor interactions. (b) Signaling pathway enrichment analysis. (c) Differential cell-cell communication between HC and SjS. (d) Key signaling pathways contributing to disease progression.
+
+---
+
+## **a. Overview of ligand-receptor interactions**
+
+**(a) Global view of ligand-receptor interactions in HC and SjS PBMCs.** Network diagrams showing the overall communication strength between different immune cell types. The thickness of edges represents interaction strength, and node size indicates the number of cells.
+
+```{r fig1a, fig.width=9, fig.height=8, warning=FALSE, message=FALSE}
+# ============================================================================
+# FIGURE 6A: CELL TYPE COUNT BARPLOT (HC vs SjS)
+# ============================================================================
+
+# 假设 scRNA_harmony 已加载，且包含 Group (HC/SjS) 和 Minor.CellType 列
+library(ggplot2)
+library(dplyr)
+
+# 提取每个组的小细胞类型计数
+cell_counts <- scRNA_harmony@meta.data %>%
+  group_by(Group, Minor.CellType) %>%
+  summarise(n = n(), .groups = 'drop') %>%
+  mutate(Minor.CellType = factor(Minor.CellType, levels = unique(Minor.CellType)))  # 保持原始顺序
+
+# 绘图
+p6a <- ggplot(cell_counts, aes(x = Minor.CellType, y = n, fill = Group)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  scale_fill_manual(values = c("HC" = "#1F77B4", "SjS" = "#D62728")) +
+  labs(
+    title = "Cell type distribution in HC vs SjS",
+    subtitle = "Count per minor cell type",
+    x = "Minor Cell Type",
+    y = "Number of Cells"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+    legend.title = element_text(face = "bold"),
+    legend.position = "top"
+  ) +
+  guides(fill = guide_legend(title = "Group", nrow = 1))
+
+# 保存
+ggsave(
+  filename = here(output_dir, "Figure6A_cell_counts.pdf"),
+  plot = p2a,
+  width = 8,
+  height = 6,
+  device = "pdf"
+)
+```
+
+---
+
+## **b. Signaling pathway heatmap**
+**(b) Heatmap of signaling pathway communication weights.
+
+```{r fig1b, fig.width=9, fig.height=8, warning=FALSE, message=FALSE}
+# ============================================================================
+# FIGURE 6B: SIGNALING PATHWAY HEATMAP (WEIGHT)
+# ============================================================================
+
+# 从 cellchat@netP 中提取权重矩阵
+library(NMF)
+library(reshape2)
+
+# 提取 netP 权重矩阵（signaling pathway level）
+netP_weights <- cellchat@netP$weight
+rownames(netP_weights) <- cellchat@netP$pathway
+colnames(netP_weights) <- paste0(cellchat@netP$sender, "→", cellchat@netP$receiver)
+
+# 对行（pathway）和列（pair）进行排序（可选：按总分排序）
+pathway_order <- rownames(netP_weights)[order(rowSums(netP_weights), decreasing = TRUE)]
+pair_order <- colnames(netP_weights)[order(colSums(netP_weights), decreasing = TRUE)]
+
+netP_weights_sorted <- netP_weights[pathway_order, pair_order]
+
+# 转换为长格式用于绘图
+plot_data <- melt(as.matrix(netP_weights_sorted)) %>%
+  rename(Pathway = Var1, Pair = Var2, Weight = value)
+
+# 绘图（使用 NMF 的 aheatmap 或 ggplot2）
+# 这里使用 ggplot2 实现热图
+p2b <- ggplot(plot_data, aes(x = Pair, y = Pathway, fill = Weight)) +
+  geom_tile(color = "white", linewidth = 0.2) +
+  scale_fill_gradientn(
+    colors = rev(brewer.pal(11, "RdBu")),
+    limits = c(0, max(plot_data$Weight)),
+    na.value = "white",
+    name = "Weight"
+  ) +
+  labs(
+    title = "Signaling pathway communication weights in HC",
+    x = "Sender → Receiver",
+    y = "Signaling Pathway"
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 8),
+    axis.text.y = element_text(size = 8),
+    legend.position = "right"
+  ) +
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0))
+
+# 保存
+ggsave(
+  filename = here(output_dir, "Figure6B_heatmap_weight.pdf"),
+  plot = p2b,
+  width = 10,
+  height = 8,
+  device = "pdf"
+)
+```
+
+---
+
